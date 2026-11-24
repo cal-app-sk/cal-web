@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CAL – akcia</title>
+<meta name="description" content="Pozri si akciu v CAL – všetko, čo ťa čaká, na jednom mieste.">
+<meta property="og:title" content="Pozvánka na akciu v CAL">
+<meta property="og:description" content="Pozri, kedy a kde to je a kto ide. Pridaj sa jedným ťuknutím.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CAL">
+<meta property="og:image" content="https://cal-app-sk.github.io/cal-web/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0E0E10">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0E0E10; --surface: #17171B; --surface-alt: #1C1C21; --border: #26262C;
+    --text: #F5F5F7; --muted: #A1A1AA; --soft: #C9C9D1; --accent: #C6F432; --on-accent: #0E0E10;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, system-ui, sans-serif; }
+  body { min-height: 100vh; display: flex; justify-content: center; }
+  main { width: 100%; max-width: 440px; padding: 24px 16px 40px; display: flex; flex-direction: column; gap: 18px; }
+  .logo { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 28px; letter-spacing: -1px; }
+  .poster { position: relative; overflow: hidden; border-radius: 26px; padding: 20px; display: flex; flex-direction: column; gap: 14px; min-height: 220px; justify-content: flex-end; }
+  .poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .poster .scrim { position: absolute; inset: 0; background: rgba(0,0,0,.45); }
+  .poster > *:not(img):not(.scrim) { position: relative; }
+  .kicker { font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .title { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 40px; line-height: 1; letter-spacing: -1.5px; margin: 0; overflow-wrap: anywhere; }
+  .chip { align-self: flex-start; font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 14px; }
+  .row { display: flex; align-items: center; gap: 14px; }
+  .icon { width: 44px; height: 44px; border-radius: 14px; background: var(--surface-alt); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .row b { display: block; font-size: 16px; font-weight: 600; }
+  .row span { font-size: 13px; color: var(--muted); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+  .card h2 { font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin: 0; }
+  .card p { margin: 0; color: var(--soft); line-height: 1.5; font-size: 15px; }
+  .going { font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 700; }
+  .btn { display: flex; align-items: center; justify-content: center; height: 60px; border-radius: 30px; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 17px; text-decoration: none; }
+  .note { text-align: center; color: var(--muted); font-size: 13px; line-height: 1.5; }
+  .cancelled { background: #2A1220; border: 1px solid #FF4FA3; color: #FF4FA3; border-radius: 18px; padding: 14px; font-weight: 600; }
+  .empty { text-align: center; padding: 60px 8px; display: flex; flex-direction: column; gap: 10px; }
+  .empty h1 { font-family: 'Space Grotesk', sans-serif; margin: 0; font-size: 28px; }
+  .empty p { margin: 0; color: var(--muted); line-height: 1.5; }
+  .loading { color: var(--muted); text-align: center; padding: 80px 0; }
+</style>
+</head>
+<body>
+<main id="app">
+  <div class="logo">CAL</div>
+  <div class="loading">Načítavam akciu…</div>
+</main>
+
+<script>
+  // Verejné údaje Supabase (publishable key je určený pre prehliadač; dáta chráni RLS
+  // a funkcia public_event vráti LEN verejné akcie – „Sledujúci“ a „Pre pozvaných“ nikdy).
+  const SUPABASE_URL = 'https://wazrjbbnxpgxnqzcvngp.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_RRKwHbVE17rFsjbQ54F0yA_wiaMiq4B';
+  // Odkaz do appky (webová verzia CAL vedľa tejto stránky). Keď bude appka v obchodoch,
+  // stránka ponúkne aj App Store / Google Play.
+  const eventId = new URLSearchParams(location.search).get('e');
+  const validId = !!eventId && /^[0-9a-f-]{36}$/i.test(eventId);
+  const APP_LINK = validId ? `app/akcia/${eventId}` : 'app/';
+
+  const POSTERS = {
+    orange: { bg: '#FF6B35', ink: '#1A0A02', chipBg: '#1A0A02', chipText: '#FF6B35' },
+    blue:   { bg: '#3D5AFE', ink: '#FFFFFF', chipBg: '#FFFFFF', chipText: '#1B2A9E' },
+    pink:   { bg: '#FF4FA3', ink: '#1A0A12', chipBg: '#1A0A12', chipText: '#FF4FA3' },
+    lime:   { bg: '#C6F432', ink: '#0E0E10', chipBg: '#0E0E10', chipText: '#C6F432' },
+  };
+  const DAYS = ['nedeľa', 'pondelok', 'utorok', 'streda', 'štvrtok', 'piatok', 'sobota'];
+  const MONTHS = ['januára','februára','marca','apríla','mája','júna','júla','augusta','septembra','októbra','novembra','decembra'];
+
+  const app = document.getElementById('app');
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const tz = { timeZone: 'Europe/Bratislava' };
+  const hhmm = (d) => d.toLocaleTimeString('sk-SK', { ...tz, hour: '2-digit', minute: '2-digit' });
+  const local = (d) => new Date(d.toLocaleString('en-US', tz));
+  const longDate = (d) => { const l = local(d); return `${DAYS[l.getDay()]} ${l.getDate()}. ${MONTHS[l.getMonth()]}`; };
+  const people = (n) => (n === 1 ? 'človek' : n >= 2 && n <= 4 ? 'ľudia' : 'ľudí');
+
+  function showEmpty(title, text) {
+    app.innerHTML = `<div class="logo">CAL</div>
+      <div class="empty"><h1>${esc(title)}</h1><p>${esc(text)}</p></div>
+      <a class="btn" href="${APP_LINK}" id="stiahni">Otvoriť v CAL</a>
+      <p class="note">Ak ťa autor sleduje alebo pozval, uvidíš ju po prihlásení.<br>CAL – všetko, čo ťa čaká, na jednom mieste.</p>`;
+  }
+
+  async function load() {
+    const id = new URLSearchParams(location.search).get('e');
+    if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return showEmpty('Akcia nenájdená', 'Odkaz je neúplný. Popros toho, kto ti ho poslal, o nový.');
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/public_event`, {
+        method: 'POST',
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_id: id }),
+      });
+      if (!res.ok) throw new Error(res.status);
+      const rows = await res.json();
+      const e = rows[0];
+      if (!e) return showEmpty('Akcia nie je verejná', 'Táto akcia neexistuje, alebo ju autor zdieľa len so sledujúcimi či pozvanými. Pozri si ju v appke CAL.');
+      render(e);
+    } catch {
+      showEmpty('Niečo sa pokazilo', 'Akciu sa nepodarilo načítať. Skús to o chvíľu znova.');
+    }
+  }
+
+  function render(e) {
+    const p = e.photo_url ? { bg: '#000', ink: '#FFF', chipBg: '#FFF', chipText: '#0E0E10' } : POSTERS[e.poster] || { bg: '#26262C', ink: '#F5F5F7', chipBg: '#F5F5F7', chipText: '#0E0E10' };
+    const start = new Date(e.starts_at);
+    const end = e.ends_at ? new Date(e.ends_at) : null;
+    document.title = `${e.title} – CAL`;
+    const pin = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F5F5F7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+    const clock = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F5F5F7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+    app.innerHTML = `
+      <div class="logo">CAL</div>
+      ${e.cancelled ? '<div class="cancelled">Táto akcia je zrušená.</div>' : ''}
+      <div class="poster" style="background:${p.bg};color:${p.ink}">
+        ${e.photo_url ? `<img src="${esc(e.photo_url)}" alt=""><div class="scrim"></div>` : ''}
+        <div class="chip" style="background:${p.chipBg};color:${p.chipText}">${esc(hhmm(start))}</div>
+        <div class="kicker">${esc([e.kind || e.category, 'Verejná'].filter(Boolean).join(' · '))}</div>
+        <h1 class="title">${esc(e.title)}</h1>
+      </div>
+      <div class="row"><div class="icon">${clock}</div><div><b>${esc(longDate(start))}</b><span>${esc(hhmm(start))}${end ? ' – ' + esc(hhmm(end)) : ''}</span></div></div>
+      ${e.place ? `<div class="row"><div class="icon">${pin}</div><div><b>${esc(e.place)}</b><span>${esc(e.city)}</span></div></div>` : ''}
+      <div class="card"><span style="color:var(--muted);font-size:13px">Kto ide</span><div class="going">${Number(e.going)} ${people(Number(e.going))}</div><span style="color:var(--muted);font-size:13px">Organizuje ${esc(e.organizer)}</span></div>
+      ${e.description ? `<div class="card"><h2>O akcii</h2><p>${esc(e.description)}</p></div>` : ''}
+      <a class="btn" href="${APP_LINK}" id="stiahni">Pridať sa v CAL</a>
+      <p class="note">Pridaj sa, uvidíš, kto ide, a nič ti neujde.<br>CAL – všetko, čo ťa čaká, na jednom mieste.</p>`;
+  }
+
+  load();
+</script>
+</body>
+</html>

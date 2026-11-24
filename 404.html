@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="sk">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>CAL</title>
+    <meta name="description" content="CAL – všetko, čo ťa čaká, na jednom mieste." />
+    <meta name="theme-color" content="#0E0E10" />
+    <!-- PWA: celá obrazovka po pridaní na plochu (iPhone aj Android) -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="CAL" />
+    <link rel="manifest" href="/cal-web/app/manifest.json" />
+    <link rel="apple-touch-icon" href="/cal-web/app/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" href="/cal-web/app/icon-192.png" />
+    <style id="expo-reset">
+      html,
+      body {
+        height: 100%;
+        background: #0e0e10;
+        color-scheme: dark;
+      }
+      body {
+        overflow: hidden;
+        overscroll-behavior: none;
+      }
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  <meta name="theme-color" content="#0E0E10">
+<meta name="description" content="Všetko, čo ťa čaká, na jednom mieste.">
+<link rel="icon" href="/cal-web/app/favicon.ico"/></head>
+  <body>
+    <noscript>Na spustenie CAL zapni JavaScript.</noscript>
+    <div id="root"></div>
+    <script>
+      // Service worker (potrebný na inštaláciu v Androide); len vo zverejnenej verzii.
+      if ('serviceWorker' in navigator && '/cal-web/app'.indexOf('__') !== 0) {
+        navigator.serviceWorker.register('/cal-web/app/sw.js', { scope: '/cal-web/app/' }).catch(function () {});
+      }
+    </script>
+  <script src="/cal-web/app/_expo/static/js/web/__expo-metro-runtime-ed4c1cfa6193d76fc294130e42bd1916.js" defer></script><script src="/cal-web/app/_expo/static/js/web/__common-01b9a022994af248648886e78ca4e68b.js" defer></script><script src="/cal-web/app/_expo/static/js/web/entry-2b7955e49de9d3e7b489515bcbc9f08a.js" defer></script>
+</body>
+</html>
